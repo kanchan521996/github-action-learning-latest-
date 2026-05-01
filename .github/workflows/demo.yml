@@ -5,6 +5,12 @@ on:
     branches:
       - main
 
+# Required for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -12,11 +18,13 @@ jobs:
       - name: Get code
         uses: actions/checkout@v4
 
-      - name: get cache
+      - name: Cache npm dependencies
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+          key: npm-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
 
       - name: Install dependencies
         run: npm ci
@@ -31,17 +39,19 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     outputs:
-      script-file: ${{ steps.publish.outputs.something }}   # ✅ yaha hona chahiye
+      script-file: ${{ steps.publish.outputs.something }}
 
     steps:
       - name: Get code
         uses: actions/checkout@v4
 
-      - name: get cache
+      - name: Cache npm dependencies
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+          key: npm-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
 
       - name: Install dependencies
         run: npm ci
@@ -55,7 +65,7 @@ jobs:
           file=$(find dist/assets/*.js -type f | head -n 1)
           echo "something=$file" >> $GITHUB_OUTPUT
 
-      - name: upload artifacts
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: website-build
@@ -64,11 +74,26 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: download artifact
+      - name: Download artifact
         uses: actions/download-artifact@v4
         with:
           name: website-build
 
-      - name: Use output
+      - name: Use output (example)
         run: echo "JS File: ${{ needs.build.outputs.script-file }}"
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
