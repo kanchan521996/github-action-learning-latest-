@@ -6,6 +6,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    outputs:
+      script-file: ${{ steps.publish.outputs.something }}
+
+
     steps:
       - name: Get code
         uses: actions/checkout@v3
@@ -25,6 +29,9 @@ jobs:
         run: npm ci
       - name: Build website
         run: npm run build
+      - name: Publish JS filemane
+        id: publish
+        run: find dist/assets/*.js -type f -execdir echo 'something={}' >> $GITHUB_OUTPUT ';'
       - name: get the artifacts
         uses: actions/upload-artifact@v4
         with:
