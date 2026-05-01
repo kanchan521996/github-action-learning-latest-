@@ -83,8 +83,7 @@ jobs:
         with:
           name: website-build
 
-      - name: Use output (example)
-        run: echo "JS File: ${{ needs.build.outputs.script-file }}"
+     
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
