@@ -1,53 +1,66 @@
 name: Deploy website
+
 on:
   push:
     branches:
       - main
+
 jobs:
   test:
     runs-on: ubuntu-latest
-    outputs:
-      script-file: ${{ steps.publish.outputs.something }}
-
-
     steps:
       - name: Get code
         uses: actions/checkout@v4
+
       - name: get cache
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: deps-node-modules-${{ hashFiles('**/package-lock.json')}}
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+
       - name: Install dependencies
         run: npm ci
-     
+
       - name: Lint code
         run: npm run lint
+
       - name: Test code
         run: npm run test
+
   build:
     needs: test
     runs-on: ubuntu-latest
+    outputs:
+      script-file: ${{ steps.publish.outputs.something }}   # ✅ yaha hona chahiye
+
     steps:
       - name: Get code
         uses: actions/checkout@v4
+
       - name: get cache
         uses: actions/cache@v4
         with:
           path: ~/.npm
-          key: deps-node-modules-${{ hashFiles('**/package-lock.json')}}
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+
       - name: Install dependencies
         run: npm ci
+
       - name: Build website
         run: npm run build
-      - name: Publish JS filemane
+
+      - name: Publish JS filename
         id: publish
-        run: find dist/assets/*.js -type f -execdir echo 'something={}' >> $GITHUB_OUTPUT ';'
-      - name: get the artifacts
+        run: |
+          file=$(find dist/assets/*.js -type f | head -n 1)
+          echo "something=$file" >> $GITHUB_OUTPUT
+
+      - name: upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: website-build
           path: dist
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -56,3 +69,6 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: website-build
+
+      - name: Use output
+        run: echo "JS File: ${{ needs.build.outputs.script-file }}"
